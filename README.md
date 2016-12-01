@@ -2,8 +2,8 @@ Visualise and remove background from data.
 
 ## Usage
 
-#tested on Python 3 only
-python removeBackgroundGUI.py
+(tested on Python 3 only)
+* python removeBackgroundGUI.py
 
 ## License
 

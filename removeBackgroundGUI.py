@@ -24,7 +24,11 @@ Last modified: 2016/11/29
 
 """
 TODO
+
+grey calculate background, save image of export data if not possible
 display error message if background absent while saving
+add options for reading the csv file (header, etc)
+add generic interface for custom cost function
 """
 
 #import sys, os, random
