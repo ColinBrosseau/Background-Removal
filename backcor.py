@@ -1,10 +1,10 @@
 import numpy as np
 
-def backcor(n,y,order,threshold,fct='atq'):
+def backcor(n,y,order,threshold,fct='atq',mask=True):
     '''
     Background estimation by minimizing a non-quadratic cost function.
     
-    [EST,COEFS,IT] = backcor(N,Y,ORDER,THRESHOLD,FUNCTION) computes an
+    [EST,COEFS,IT] = backcor(N,Y,ORDER,THRESHOLD,fcn=FUNCTION,index=True) computes an
     estimation EST of the background (aka. baseline) in a spectroscopic 
     signal Y with wavelength N.
     The background is estimated by a polynomial with order ORDER using a 
@@ -22,6 +22,10 @@ def backcor(n,y,order,threshold,fct='atq'):
         'atq' - asymmetric truncated quadratic :  
             f(x) = { x^2  if x < THRESHOLD,
                    { THRESHOLD^2  otherwise.
+    mask relate to a mask to put on point for for calculation of cost function
+          if True, all elements are valid
+          else for exemple [0, 0, 1, 1, 1, 0, 0] only elements 2-4 are valid
+
    COEFS returns the ORDER+1 vector of the estimated polynomial coefficients.
    IT returns the number of iterations.
 
@@ -45,14 +49,32 @@ def backcor(n,y,order,threshold,fct='atq'):
 #    error('backcor:UnknownFunction','Unknown function.');
 #    end;
 
+    try:
+        if mask == True:
+            mask = np.ones((len(n), 1), dtype=bool)
+    except:
+        pass
+
+    #save n for output of background calculation at the end on the full x-axis
+    n_initial = n
+    
+    #only keep valid points
+    I = np.where(mask)[0]
+    n = n[I]
+    y = y[I]
+
     # Rescaling
     N = len(n)
     i =  np.argsort(n)
     n = n[i]
     y = y[i]
+    mask = mask[i]
+    
     maxy = max(y)
     dely = (maxy-min(y))/2
-    n = 2 * (n-n[N-1]) / (n[N-1]-n[0]) + 1
+    rescale_offset = -n[-1]
+    rescale_factor = 2 / (n[-1]-n[0]) 
+    n = (n+rescale_offset) * rescale_factor + 1
     y = (y-maxy)/dely + 1
     threshold /= dely
 
@@ -115,7 +137,19 @@ def backcor(n,y,order,threshold,fct='atq'):
         a = np.dot(Tinv, (y+d));   # Polynomial coefficients a
         z = np.dot(T, a);          # Polynomial
    
-    # Rescaling
+    #back to original x-axis
+    # Rescale 
+    N = len(n_initial)
+    i =  np.argsort(n_initial)
+    n_initial = n_initial[i]
+    n_initial = (n_initial+rescale_offset) * rescale_factor + 1
+    # Make column vectors
+    n_initial = n_initial.reshape((N, 1))
+    # Vandermonde matrix
+    p = np.arange(order+1)
+    T = np.tile(n_initial, (1, order+1)) ** np.tile(p, (N, 1))
+    z = np.dot(T, a);          # Polynomial
+    # Rescaling back to original
     j =  np.argsort(i)
     z = (z[j]-1)*dely + maxy;
     
@@ -123,4 +157,7 @@ def backcor(n,y,order,threshold,fct='atq'):
     if shape == 'row':
         z = np.squeeze(z)
 
+    #z  Background
+    #a  Polynomial coefficient
+    #it Iteration number
     return z, a, it
