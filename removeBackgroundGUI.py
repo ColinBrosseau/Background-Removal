@@ -45,10 +45,13 @@ from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
 
+import pyqtgraph as pg
+
 import backcor
 
 class AppForm(QMainWindow):
     def __init__(self, parent=None):
+        pg.setConfigOptions(antialias=True)
         QMainWindow.__init__(self, parent)
         self.showMaximized()
         self.x = 0
@@ -104,6 +107,8 @@ class AppForm(QMainWindow):
             data = np.loadtxt(path, delimiter=',', unpack=True, skiprows=1)
             self.x = data[0]
             self.y = data[1]
+            self.lr_axes = pg.LinearRegionItem([np.min(self.x), np.max(self.x)])
+            self.lr_axes.setZValue(-10)
             self.has_background = False
             self.background_removed = False
             self.plot_data()
@@ -126,30 +131,43 @@ class AppForm(QMainWindow):
         """ Redraws the figure
         """
         self.axes.clear()        
-        self.axes.grid(self.grid_cb.isChecked())
-
-        self.axes.plot(self.x, self.y, '.', label='data')
-        self.axes.set_xlim([np.min(self.x), np.max(self.x)])
-        self.axes.set_ylim([np.min(self.y), np.max(self.y)])
-        self.axes.set_title('Data')
-        self.axes.set_xticklabels([])
-        
         self.axes2.clear()        
+#        self.axes.grid(self.grid_cb.isChecked())
+
+#        self.axes.plot(self.x, self.y, '.', label='data')
+        self.axes.plot(self.x, self.y, symbol='o', pen=(0,0,255), name="data")
+        self.axes.addItem(self.lr_axes)
+#        self.axes.set_xlim([np.min(self.x), np.max(self.x)])
+#        self.axes.set_ylim([np.min(self.y), np.max(self.y)])
+        self.axes.setXRange(np.min(self.x), np.max(self.x))
+        self.axes.setYRange(np.min(self.y), np.max(self.y))
+#        self.axes.set_title('Data')
+        self.axes.setTitle('Data')
+
+#        self.axes.set_xticklabels([])
+        
+#         self.axes2.clear()        
         if self.has_background:
-            self.axes.set_title('Data & Background')
-            self.axes.plot(self.x,self.background,'', label='background')
+#             self.axes.set_title('Data & Background')
+            self.axes.setTitle('Data & Background')
+#             self.axes.plot(self.x,self.background,'', label='background')
+            self.axes.plot(self.x, self.background, pen=(0,255,0), name="background")
 
             z = self.y - self.background
-            self.axes2.grid(self.grid_cb.isChecked())
+# #            self.axes2.grid(self.grid_cb.isChecked())
             
-            self.axes2.plot(self.x, z, '.', label='data - background')
-            self.axes2.set_xlim([np.min(self.x), np.max(self.x)])
-            self.axes2.set_ylim([np.min(z), np.max(z)])
-            self.axes2.set_title('Difference')
-            self.axes2.legend()
+#             self.axes2.plot(self.x, z, '.', label='data - background')
+            self.axes2.setTitle('Data - background') 
+            self.axes2.plot(self.x, z, pen=(255,0,0), name="difference")
+#             self.axes2.set_xlim([np.min(self.x), np.max(self.x)])
+#             self.axes2.set_ylim([np.min(z), np.max(z)])
+#             self.axes2.set_title('Difference')
+#             self.axes2.legend()
+            self.axes2.addLegend()
             
-        self.axes.legend()
-        self.canvas.draw()
+        self.axes.addLegend()
+#         self.axes.legend()
+#         self.canvas.draw()
     
     def calculate_background(self):
         """ Calculate the background
@@ -168,7 +186,16 @@ class AppForm(QMainWindow):
         self.statusBar().showMessage('Calculating background...')  # problem here: it just make status bar to blink. Like it print this line after it make calculation
         order = int(self.order.text())
         threshold = float(self.threshold.text())
-        z, a, it = backcor.backcor(self.x, self.y, order, threshold, method)
+        min_x, max_x = self.lr_axes.getRegion()
+        I = ((min_x <= self.x) & (self.x <= max_x))
+        print(I)
+        z, a, it = backcor.backcor(self.x, self.y, order, threshold, method, mask=I)
+#        print(a)
+#        print(it)
+#        p = np.arange(order+1)
+#        T = np.tile(n, (1, order+1)) ** np.tile(p, (N, 1))
+#        z = np.dot(T, a)
+        
         self.statusBar().showMessage('')
         self.has_background = True
         self.background = z
@@ -176,7 +203,8 @@ class AppForm(QMainWindow):
     
     def create_main_frame(self):
         self.main_frame = QWidget()
-        
+
+        # Plot
         self.dpi = 100
 #        self.fig = Figure((5.0, 4.0), dpi=self.dpi)
         self.fig = Figure(dpi=self.dpi, tight_layout=True)
@@ -188,6 +216,20 @@ class AppForm(QMainWindow):
         
         # Create the navigation toolbar, tied to the canvas
         self.mpl_toolbar = NavigationToolbar(self.canvas, self.main_frame)
+
+        # Plot with pyqtgraph
+#        x = np.array([0,1,2,3,4,5,6])
+#        y = x**2
+        self.axes = pg.PlotWidget()
+#        self.axes.plot(x, y)
+#        self.lr_axes = pg.LinearRegionItem([3,5])
+#        self.lr_axes.setZValue(-10)
+#        self.axes.addItem(self.lr_axes)
+        
+#        x = np.array([0,1,2,3,4,5,6])
+#        y = x**.5
+        self.axes2 = pg.PlotWidget()
+#        self.axes2.plot(x, y)
         
         # Other GUI controls
 
@@ -229,9 +271,9 @@ class AppForm(QMainWindow):
         self.draw_button.setEnabled(False)
         self.connect(self.draw_button, SIGNAL('clicked()'), self.calculate_background)
 
-        self.grid_cb = QCheckBox("Show &Grid")
-        self.grid_cb.setChecked(False)
-        self.connect(self.grid_cb, SIGNAL('stateChanged(int)'), self.plot_data)
+#        self.grid_cb = QCheckBox("Show &Grid")
+#        self.grid_cb.setChecked(False)
+#        self.connect(self.grid_cb, SIGNAL('stateChanged(int)'), self.plot_data)
         
         # Layout with box sizers
         hbox = QHBoxLayout()
@@ -242,15 +284,19 @@ class AppForm(QMainWindow):
         hbox.setAlignment(threshold, Qt.AlignVCenter)
         hbox.addLayout(fit_method)
         hbox.setAlignment(fit_method, Qt.AlignVCenter)
+        hbox.addWidget(self.draw_button)
+        hbox.setAlignment(self.draw_button, Qt.AlignVCenter)
 #        for w in [  self.order, self.threshold, self.draw_button, self.remove_button, self.grid_cb,
-        for w in [ self.draw_button, self.grid_cb,]:
-            hbox.addWidget(w)
-            hbox.setAlignment(w, Qt.AlignVCenter)
+#        for w in [ self.draw_button, self.grid_cb,]:
+#            hbox.addWidget(w)
+#            hbox.setAlignment(w, Qt.AlignVCenter)
 
         # Main window (everything together)
         vbox = QVBoxLayout()
-        vbox.addWidget(self.canvas)
-        vbox.addWidget(self.mpl_toolbar)
+#        vbox.addWidget(self.canvas)
+#        vbox.addWidget(self.mpl_toolbar)
+        vbox.addWidget(self.axes)
+        vbox.addWidget(self.axes2)
         vbox.addLayout(hbox)
         
         self.main_frame.setLayout(vbox)
