@@ -1,10 +1,10 @@
 import numpy as np
 
-def backcor(n,y,order,threshold,fct='atq',mask=True):
+def backcor(n, y, order, threshold, fct='atq', mask=True):
     '''
     Background estimation by minimizing a non-quadratic cost function.
     
-    [EST,COEFS,IT] = backcor(N,Y,ORDER,THRESHOLD,fcn=FUNCTION,index=True) computes an
+    [EST, COEFS, IT] = backcor(N, Y, ORDER, THRESHOLD, fcn=FUNCTION, index=True) computes an
     estimation EST of the background (aka. baseline) in a spectroscopic 
     signal Y with wavelength N.
     The background is estimated by a polynomial with order ORDER using a 
@@ -40,6 +40,7 @@ def backcor(n,y,order,threshold,fct='atq',mask=True):
     Revised 12-November-2012 (thanks E.H.M. Ferreira!)
     Comments and questions to: vincent.mazet@unistra.fr.
     13-september-2016 Translation to Python (Colin-N. Brosseau)
+    1-december-2016 Add mask option (Colin-N. Brosseau)
     '''
 # ??? To be done in Python
     # Check arguments
@@ -99,16 +100,16 @@ def backcor(n,y,order,threshold,fct='atq',mask=True):
     z = np.dot(T, a)
 
     # Other variables
-    alpha = 0.99 * 1/2;     # Scale parameter alpha
-    it = 0;                 # Iteration number
-    zp = np.ones((N, 1));   # Previous estimation
+    alpha = 0.99 * 1/2      # Scale parameter alpha
+    it = 0                  # Iteration number
+    zp = np.ones((N, 1))    # Previous estimation
 
     # LEGEND
     while sum((z-zp)**2)/sum(zp**2) > 1e-9:
 
-        it = it + 1;        # Iteration number
-        zp = z;             # Previous estimation
-        res = y - z;        # Residual
+        it = it + 1         # Iteration number
+        zp = z              # Previous estimation
+        res = y - z         # Residual
 
         # Estimate d
         if fct == 'sh':
@@ -134,8 +135,8 @@ def backcor(n,y,order,threshold,fct='atq',mask=True):
             d = (res*(2*alpha-1)) * a1 - res * a2
 
         # Estimate z
-        a = np.dot(Tinv, (y+d));   # Polynomial coefficients a
-        z = np.dot(T, a);          # Polynomial
+        a = np.dot(Tinv, (y+d))    # Polynomial coefficients a
+        z = np.dot(T, a)           # Polynomial
    
     #back to original x-axis
     # Rescale 
@@ -148,10 +149,10 @@ def backcor(n,y,order,threshold,fct='atq',mask=True):
     # Vandermonde matrix
     p = np.arange(order+1)
     T = np.tile(n_initial, (1, order+1)) ** np.tile(p, (N, 1))
-    z = np.dot(T, a);          # Polynomial
+    z = np.dot(T, a)           # Polynomial
     # Rescaling back to original
     j =  np.argsort(i)
-    z = (z[j]-1)*dely + maxy;
+    z = (z[j]-1)*dely + maxy 
     
     # Put back on initial shape
     if shape == 'row':
