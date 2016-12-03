@@ -23,6 +23,8 @@ from PyQt4 import QtGui, QtCore
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 
+import argparse
+
 class importCsv(QtGui.QWidget):
     def __init__(self, filename=False, xIndex=1, yIndex=2, headerValue=0, parent=None):
         super(importCsv, self).__init__(parent)
@@ -195,10 +197,19 @@ class importCsv(QtGui.QWidget):
 
 if __name__ == "__main__":
     import sys
+
+    # parse commandline arguments
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-f", "--file", help="input file (.csv format)")
+    parser.add_argument("--x", default=1, type=int, help="column of x-axis")
+    parser.add_argument("--y", default=2, type=int, help="column of y-axis")
+    parser.add_argument("--header", default=0, type=int, help="number of lines of header")
+    args = parser.parse_args()
+
     app = QtGui.QApplication(sys.argv)
     app.setApplicationName('Import .csv')
-#    main = importCsv("test_file.csv")
-    main = importCsv()
-    main.show()
+
+    main = importCsv(filename=args.file, xIndex=args.x, yIndex=args.y, headerValue=args.header)
+    main.show() 
 
     sys.exit(app.exec_())
