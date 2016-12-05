@@ -46,6 +46,7 @@ from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as Navigatio
 from matplotlib.figure import Figure
 
 import backcor
+from importCsvGui import importCsv
 
 class AppForm(QMainWindow):
     def __init__(self, parent=None):
@@ -92,18 +93,10 @@ class AppForm(QMainWindow):
             self.statusBar().showMessage('Saved to %s' % path, 2000)
     
     def load_csv(self):
-        file_choices = "CSV (*.csv)|*.csv"
-#        file_choices = "*|*"
-        
-        path = str(QFileDialog.getOpenFileName(self, 
-                        'Load file', '', 
-                        "CSV (*.csv);;All Files (*)"))
-        
-        if path:
+        self.x, self.y, parameters, ok = importCsv.getData()
+        if ok:
+            print(parameters)
             self.draw_button.setEnabled(True)
-            data = np.loadtxt(path, delimiter=',', unpack=True, skiprows=1)
-            self.x = data[0]
-            self.y = data[1]
             self.has_background = False
             self.background_removed = False
             self.plot_data()
