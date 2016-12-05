@@ -168,17 +168,19 @@ class importCsv(QtGui.QWidget):
         print("first: " + str(first_line))
         print("last : " + str(last_line))
 
-        # with open('output_' + filename, "w") as fileOutput:
-        #     writer = csv.writer(fileOutput)
-        #     for rowNumber in range(self.model.rowCount()):
-        #         fields = [
-        #             self.model.data(
-        #                 self.model.index(rowNumber, columnNumber),
-        #                 QtCore.Qt.DisplayRole
-        #             )
-        #             for columnNumber in range(self.model.columnCount())
-        #         ]
-        #         writer.writerow(fields)
+        print('output.csv' + filename)
+        with open('output_' + filename, "w") as fileOutput:
+            writer = csv.writer(fileOutput)
+            for rowNumber in range(first_line, self.model.rowCount()):
+                fields = [
+                    self.model.data(
+                        self.model.index(rowNumber, columnNumber),
+                        QtCore.Qt.DisplayRole
+                    )
+                    for columnNumber in [self.x-1, self.y-1]
+                ]
+                writer.writerow(fields)
+            fileOutput.close()
 
     @QtCore.pyqtSlot()
     def exportButton_clicked(self):
